@@ -1,3 +1,13 @@
+## Vercel一键部署
+
+<a href="https://vercel.com/import/project?template=https://github.com/cliouo/FreeGPT35-Vercel" target="_blank" rel="noopener noreferrer"><img loading="lazy" src="https://vercel.com/button" alt="Deploy to Vercel" ></a>
+
+**绑定自定义域名解决Vercel域名被阻断问题**
+
+--------------------
+
+## 以下为原项目文档:
+
 [![Docker Pulls][1]](https://hub.docker.com/r/missuo/freegpt35)
 
 [1]: https://img.shields.io/docker/pulls/missuo/freegpt35?logo=docker
@@ -15,6 +25,7 @@ Utilize the unlimited free **GPT-3.5-Turbo** API service provided by the login-f
 - Don't share and abuse your API. 不要共享和滥用你的 API。
 
 ## Deploy
+
 ### Node
 
 ```bash
