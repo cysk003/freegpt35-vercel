@@ -21,6 +21,19 @@ let sessionStartTime = new Date();
 // Function to wait for a specified duration
 // const wait = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
+// Function for authentication
+function authMiddleware(req, res, next) {
+  // Set API-Key
+  const authToken = process.env.AUTH_TOKEN || 'sk-ThisisaRealFreeAPIKeyforEveryone';
+  const reqAuthToken = req.headers.authorization;
+
+  if (reqAuthToken && reqAuthToken === `Bearer ${authToken}`) {
+      next(); 
+  } else {
+      res.sendStatus(401); 
+  }
+}
+
 function GenerateCompletionId(prefix = "cmpl-") {
   const characters =
     "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
@@ -280,7 +293,7 @@ app.use(bodyParser.json());
 app.use(enableCORS);
 
 // Route to handle POST requests for chat completions
-app.post("/v1/chat/completions", handleChatCompletion);
+app.post("/v1/chat/completions", authMiddleware, handleChatCompletion);
 
 // 404 handler for unmatched routes
 app.use((req, res) =>
