@@ -7,7 +7,7 @@
 ### Variables
 | Key         | Default Value                          | Note                                      |
 |-------------|----------------------------------------|-------------------------------------------|
-| `AUTH_TOKEN` | `sk-ThisisaRealFreeAPIKeyforEveryone` | This is your API key for accessing FreeGPT35. |
+| `AUTH_TOKEN`|          any_string_you_like           | This is your API key for accessing FreeGPT35. |
 
 --------------------
 
