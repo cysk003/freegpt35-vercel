@@ -1,3 +1,14 @@
+> [!WARNING]
+> ## Vercel部署此路有严重限制，玩玩就好，真用还是得docker。
+> ## 还是看看远处的[aurora](https://github.com/aurora-develop/aurora)吧家人们
+- 限制原因:
+Vercel的流式响应并不是一开始写流，客户端就能立刻收到响应流，而是先写到一个缓冲区，当流关闭才一股脑的流式响应回来(不是实时流)
+- 因此导致:
+超过10s之后才要关闭的流，通通接收不到。(因为Vercel免费版持续时间最大值10秒)
+
+#### 不过，玩玩沉浸式翻译，把`每次请求最大文本长度`调小一点不超时的话，还是不错的。 (自定义域名的情况下)
+#### Vercel的并发大概有50-60QPS，还是挺高的。
+---------------------
 ## Vercel一键部署
 
 <a href="https://vercel.com/import/project?template=https://github.com/cliouo/FreeGPT35-Vercel" target="_blank" rel="noopener noreferrer"><img loading="lazy" src="https://vercel.com/button" alt="Deploy to Vercel" ></a>
