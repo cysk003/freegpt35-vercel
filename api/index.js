@@ -23,14 +23,17 @@ let sessionStartTime = new Date();
 
 // Function for authentication
 function authMiddleware(req, res, next) {
-  // Set API-Key
-  const authToken = process.env.AUTH_TOKEN || 'sk-ThisisaRealFreeAPIKeyforEveryone';
+  // Set API-Key, if not set, next()
+  const authToken = process.env.AUTH_TOKEN;
+
   const reqAuthToken = req.headers.authorization;
 
-  if (reqAuthToken && reqAuthToken === `Bearer ${authToken}`) {
-      next(); 
+  if (!authToken) {
+    next();
+  } else if (reqAuthToken && reqAuthToken === `Bearer ${authToken}`) {
+    next();
   } else {
-      res.sendStatus(401); 
+    res.sendStatus(401);
   }
 }
 
