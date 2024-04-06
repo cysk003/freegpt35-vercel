@@ -15,8 +15,7 @@ const errorWait = 120000; // Wait time in ms after an error
 let token;
 let oaiDeviceId;
 
-// 在vercel运行时判断是否要新session
-let flag = true;
+// 在vercel运行时记录session创建时间
 let sessionStartTime = new Date();
 // Function to wait for a specified duration
 // const wait = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
@@ -116,6 +115,7 @@ async function getNewSessionId() {
       !token ? "(Now it's ready to process requests)" : ""
     }`
   );
+  sessionStartTime = new Date();
   oaiDeviceId = newDeviceId;
   token = response.data.token;
 
@@ -138,12 +138,7 @@ function enableCORS(req, res, next) {
 // Middleware to handle chat completions
 async function handleChatCompletion(req, res) {
   if ((new Date() - sessionStartTime) / 60000 > 1) {
-    flag = true;
-  }
-  if (flag) {
     await getNewSessionId();
-    sessionStartTime = new Date();
-    flag = false;
   }
   console.log(
     "Request:",
@@ -295,11 +290,13 @@ const app = express();
 app.use(bodyParser.json());
 app.use(enableCORS);
 
-// Route to handle POST requests for chat completions
-app.post("/v1/chat/completions", authMiddleware, handleChatCompletion);
+async function init() {
+  await getNewSessionId();
+  // Route to handle POST requests for chat completions
+  app.post("/v1/chat/completions", authMiddleware, handleChatCompletion);
 
-// 404 handler for unmatched routes
-app.use((req, res) =>
+  // 404 handler for unmatched routes
+  app.use((req, res) =>
   res.status(404).send({
     status: false,
     error: {
@@ -307,10 +304,10 @@ app.use((req, res) =>
       type: "invalid_request_error",
     },
   })
-);
+  );
 
-// Start the server and the session ID refresh loop
-app.listen(port, () => {
+  // Start the server and the session ID refresh loop
+  app.listen(port, () => {
   console.log(`💡 Server is running at http://localhost:${port}`);
   console.log();
   console.log(`🔗 Base URL: http://localhost:${port}/v1`);
@@ -321,22 +318,7 @@ app.listen(port, () => {
   console.log("📝 Original TS Source By: Pawan.Krd");
   console.log("📝 Modified Into JavaScript By: Adam");
   console.log();
+  });
+}
 
-//   setTimeout(async () => {
-//     while (true) {
-//       try {
-//         await getNewSessionId();
-//         await wait(refreshInterval);
-//       } catch (error) {
-//         console.error("Error refreshing session ID, retrying in 1 minute...");
-//         console.error(
-//           "If this error persists, your country may not be supported yet."
-//         );
-//         console.error(
-//           "If your country was the issue, please consider using a U.S. VPN."
-//         );
-//         await wait(errorWait);
-//       }
-//     }
-//   }, 0);
-});
+init();
