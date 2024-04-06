@@ -4,6 +4,11 @@
 
 **绑定自定义域名解决Vercel域名被阻断问题**
 
+### Variables
+| Key         | Default Value                          | Note                                      |
+|-------------|----------------------------------------|-------------------------------------------|
+| `AUTH_TOKEN` | `sk-ThisisaRealFreeAPIKeyforEveryone` | This is your API key for accessing FreeGPT35. |
+
 --------------------
 
 ## 以下为原项目文档:
