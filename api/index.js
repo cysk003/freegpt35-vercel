@@ -8,8 +8,6 @@ const { randomUUID } = require("crypto");
 const port = 3040;
 const baseUrl = "https://chat.openai.com";
 const apiUrl = `${baseUrl}/backend-anon/conversation`;
-const refreshInterval = 60000; // Interval to refresh token in ms
-const errorWait = 120000; // Wait time in ms after an error
 
 // Initialize global variables to store the session token and device ID
 let token;
@@ -184,6 +182,9 @@ async function handleChatCompletion(req, res) {
     let created = Date.now();
 
     for await (const message of StreamCompletion(response.data)) {
+      if (content.match(/^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}.\d{6}$/)) {
+        continue;
+      }
       const parsed = JSON.parse(message);
 
       let content = parsed?.message?.content?.parts[0] || "";
@@ -297,27 +298,27 @@ async function init() {
 
   // 404 handler for unmatched routes
   app.use((req, res) =>
-  res.status(404).send({
-    status: false,
-    error: {
-      message: `The requested endpoint was not found. please make sure to use "http://localhost:3040/v1" as the base URL.`,
-      type: "invalid_request_error",
-    },
-  })
+    res.status(404).send({
+      status: false,
+      error: {
+        message: `The requested endpoint was not found. please make sure to use "http://localhost:3040/v1" as the base URL.`,
+        type: "invalid_request_error",
+      },
+    })
   );
 
   // Start the server and the session ID refresh loop
   app.listen(port, () => {
-  console.log(`💡 Server is running at http://localhost:${port}`);
-  console.log();
-  console.log(`🔗 Base URL: http://localhost:${port}/v1`);
-  console.log(
-    `🔗 ChatCompletion Endpoint: http://localhost:${port}/v1/chat/completions`
-  );
-  console.log();
-  console.log("📝 Original TS Source By: Pawan.Krd");
-  console.log("📝 Modified Into JavaScript By: Adam");
-  console.log();
+    console.log(`💡 Server is running at http://localhost:${port}`);
+    console.log();
+    console.log(`🔗 Base URL: http://localhost:${port}/v1`);
+    console.log(
+      `🔗 ChatCompletion Endpoint: http://localhost:${port}/v1/chat/completions`
+    );
+    console.log();
+    console.log("📝 Original TS Source By: Pawan.Krd");
+    console.log("📝 Modified Into JavaScript By: Adam");
+    console.log();
   });
 }
 
