@@ -9,7 +9,19 @@ Vercel的流式响应并不是一开始写流，客户端就能立刻收到响�
 氪金!!! Vercel Pro 超时上限为300s，Pro用户部署完成后，到Vercel的`Setting`->`Git`->`Production Branch`填写为`vercel-pro`然后`Save`保存后部署该分支即可获得300s超时上限。
 ![guide](./img/guide.png)
 #### 不过，玩玩沉浸式翻译，把`每次请求最大文本长度`调小一点不超时的话，还是不错的。 (自定义域名的情况下)
-#### Vercel的并发大概有50-60QPS，还是挺高的。
+#### Vercel的并发大概有==50-60QPS==。即使是中小段落翻译任务，并发依然稳在==30QPS==
+#### 并发测试水平: 
+##### 短对话: 
+```
+{"role": "user", "content": content: "Say this is a test!"}
+```
+![test](./img/test.png)
+##### 日常翻译:
+```
+[{"role": "system", "content": "你是一个专业,地道的翻译引擎，你只返回译文，不含任何解释"},
+{"role": "user", "content": "将下面 YAML 格式的文本中的 text 字段翻译为 Simplified Chinese Language，并将翻译结果写在 text 字段中\n\nExample request:\n  - id: 1\n    text: Source\nExample result:\n  - id: 1\n    text: Translation\n\n开始翻译:\n\n- id: 1\n  text: The Philippines' official vessels infringed on China's rights, made provocations in the disguise of fishery protection, and organized media to hype up misinformation, which undermined stability in the South China Sea, he noted.\n- id: 2\n  text: Any tactic infringing on China's rights is futile, he warned.\n- id: 3\n  text: The CCG will carry out regular rights protection and law enforcement operations in waters under China's jurisdiction, and resolutely safeguard the country's territorial sovereignty and maritime rights and interests, he said."}]
+```
+![test2](./img/test2.png)
 ---------------------
 ## Vercel一键部署
 

@@ -101,6 +101,7 @@ const axiosInstance = axios.create({
 // Function to get a new session ID and token from the OpenAI API
 async function getNewSessionId() {
   let newDeviceId = randomUUID();
+  console.log(newDeviceId);
   const response = await axiosInstance.post(
     `${baseUrl}/backend-anon/sentinel/chat-requirements`,
     {},
@@ -177,6 +178,9 @@ async function handleChatCompletion(req, res) {
     let created = Date.now();
 
     for await (const message of StreamCompletion(response.data)) {
+      if (message.match(/^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}.\d{6}$/)) {
+        continue;
+      }
       const parsed = JSON.parse(message);
 
       let content = parsed?.message?.content?.parts[0] || "";
