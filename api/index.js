@@ -1,38 +1,11 @@
-const express = require("express");
-const bodyParser = require("body-parser");
-const axios = require("axios");
-const https = require("https");
-const { randomUUID } = require("crypto");
+import axios from "axios";
+import https from "https";
+import { randomUUID } from "crypto";
+import { kv } from "@vercel/kv";
 
 // Constants for the server and API configuration
-const port = 3040;
 const baseUrl = "https://chat.openai.com";
 const apiUrl = `${baseUrl}/backend-anon/conversation`;
-
-// Initialize global variables to store the session token and device ID
-let token;
-let oaiDeviceId;
-
-// 在vercel运行时记录session创建时间
-let sessionStartTime = new Date();
-// Function to wait for a specified duration
-// const wait = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
-
-// Function for authentication
-function authMiddleware(req, res, next) {
-  // Set API-Key, if not set, next()
-  const authToken = process.env.AUTH_TOKEN;
-
-  const reqAuthToken = req.headers.authorization;
-
-  if (!authToken) {
-    next();
-  } else if (reqAuthToken && reqAuthToken === `Bearer ${authToken}`) {
-    next();
-  } else {
-    res.sendStatus(401);
-  }
-}
 
 function GenerateCompletionId(prefix = "cmpl-") {
   const characters =
@@ -98,46 +71,29 @@ const axiosInstance = axios.create({
   },
 });
 
-// Function to get a new session ID and token from the OpenAI API
-async function getNewSessionId() {
-  let newDeviceId = randomUUID();
-  const response = await axiosInstance.post(
-    `${baseUrl}/backend-anon/sentinel/chat-requirements`,
-    {},
-    {
-      headers: { "oai-device-id": newDeviceId },
-    }
-  );
-  console.log(
-    `System: Successfully refreshed session ID and token. ${
-      !token ? "(Now it's ready to process requests)" : ""
-    }`
-  );
-  sessionStartTime = new Date();
-  oaiDeviceId = newDeviceId;
-  token = response.data.token;
-
-  // console.log("New Token:", token);
-  // console.log("New Device ID:", oaiDeviceId);
-}
-
-// Middleware to enable CORS and handle pre-flight requests
-function enableCORS(req, res, next) {
-  res.header("Access-Control-Allow-Credentials", true);
-  res.header("Access-Control-Allow-Origin", "*");
-  res.header("Access-Control-Allow-Headers", "*");
-  res.header("Access-Control-Allow-Methods", "GET, POST, OPTIONS");
-  if (req.method === "OPTIONS") {
-    return res.status(200).end();
-  }
-  next();
-}
 
 // Middleware to handle chat completions
-async function handleChatCompletion(req, res) {
-  if ((new Date() - sessionStartTime) / 60000 > 1) {
-    await getNewSessionId();
+export default async function handleChatCompletion(req, res) {
+  // Set CORS headers
+  res.setHeader("Access-Control-Allow-Credentials", true);
+  res.setHeader("Access-Control-Allow-Origin", "*");
+  res.setHeader("Access-Control-Allow-Methods", "GET, POST, OPTIONS");
+  res.setHeader("Access-Control-Allow-Headers", "*");
+
+  if (req.method === "OPTIONS") {
+    res.status(200).end();
+    return;
   }
+
+  const authToken = process.env.AUTH_TOKEN;
+  const reqAuthToken = req.headers.authorization;
+  if (authToken && reqAuthToken !== `Bearer ${authToken}`) {
+    res.sendStatus(401);
+  }
+
+  const session = await kv.hgetall("session:pro");
+  const { oaiDeviceId, token } = session;
+
   console.log(
     "Request:",
     `${req.method} ${req.originalUrl}`,
@@ -159,7 +115,6 @@ async function handleChatCompletion(req, res) {
       conversation_mode: { kind: "primary_assistant" },
       websocket_request_id: randomUUID(),
     };
-
     const response = await axiosInstance.post(apiUrl, body, {
       responseType: "stream",
       headers: {
@@ -167,7 +122,7 @@ async function handleChatCompletion(req, res) {
         "openai-sentinel-chat-requirements-token": token,
       },
     });
-
+    console.log("oaiResponse:", response.status, response.statusText);
     // Set the response headers based on the request type
     if (req.body.stream) {
       res.setHeader("Content-Type", "text/event-stream");
@@ -267,7 +222,6 @@ async function handleChatCompletion(req, res) {
 
     res.end();
   } catch (error) {
-    flag = false;
     // console.log('Error:', error.response?.data ?? error.message);
     if (!res.headersSent) res.setHeader("Content-Type", "application/json");
     // console.error('Error handling chat completion:', error);
@@ -285,41 +239,3 @@ async function handleChatCompletion(req, res) {
     res.end();
   }
 }
-
-// Initialize Express app and use middlewares
-const app = express();
-app.use(bodyParser.json());
-app.use(enableCORS);
-
-async function init() {
-  await getNewSessionId();
-  // Route to handle POST requests for chat completions
-  app.post("/v1/chat/completions", authMiddleware, handleChatCompletion);
-
-  // 404 handler for unmatched routes
-  app.use((req, res) =>
-    res.status(404).send({
-      status: false,
-      error: {
-        message: `The requested endpoint was not found. please make sure to use "http://localhost:3040/v1" as the base URL.`,
-        type: "invalid_request_error",
-      },
-    })
-  );
-
-  // Start the server and the session ID refresh loop
-  app.listen(port, () => {
-    console.log(`💡 Server is running at http://localhost:${port}`);
-    console.log();
-    console.log(`🔗 Base URL: http://localhost:${port}/v1`);
-    console.log(
-      `🔗 ChatCompletion Endpoint: http://localhost:${port}/v1/chat/completions`
-    );
-    console.log();
-    console.log("📝 Original TS Source By: Pawan.Krd");
-    console.log("📝 Modified Into JavaScript By: Adam");
-    console.log();
-  });
-}
-
-init();

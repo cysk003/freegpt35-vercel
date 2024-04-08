@@ -1,9 +1,36 @@
 {
   "version": 2,
-  "rewrites": [{ "source": "/(.*)", "destination": "/api" }],
+  "rewrites": [
+    {
+      "source": "/v1/chat/completions",
+      "destination": "/api/index"
+    },
+    {
+      "source": "/v1/chat/completions111",
+      "destination": "/api/test"
+    },
+    {
+      "source": "/backend-anon/sentinel/chat-requirements",
+      "destination": "/api/cron"
+    },
+    {
+      "source": "/sentinel/chat-requirements",
+      "destination": "/api/cron"
+    },
+    {
+      "source": "/",
+      "destination": "/api/guide"
+    }
+  ],
   "functions": {
     "api/**/*": {
       "maxDuration": 300
     }
-  }
+  },
+  "crons": [
+    {
+      "path": "/api/cron",
+      "schedule": "* * * * *"
+    }
+  ]
 }
