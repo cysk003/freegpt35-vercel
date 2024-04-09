@@ -1,38 +1,15 @@
-const express = require("express");
-const bodyParser = require("body-parser");
-const axios = require("axios");
-const https = require("https");
-const { randomUUID } = require("crypto");
+export const config = {
+  supportsResponseStreaming: true,
+};
+
+import axios from "axios";
+import https from "https";
+import { randomUUID } from "crypto";
+import { createClient } from "@vercel/kv";
 
 // Constants for the server and API configuration
-const port = 3040;
 const baseUrl = "https://chat.openai.com";
 const apiUrl = `${baseUrl}/backend-anon/conversation`;
-
-// Initialize global variables to store the session token and device ID
-let token;
-let oaiDeviceId;
-
-// 在vercel运行时记录session创建时间
-let sessionStartTime = new Date();
-// Function to wait for a specified duration
-// const wait = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
-
-// Function for authentication
-function authMiddleware(req, res, next) {
-  // Set API-Key, if not set, next()
-  const authToken = process.env.AUTH_TOKEN;
-
-  const reqAuthToken = req.headers.authorization;
-
-  if (!authToken) {
-    next();
-  } else if (reqAuthToken && reqAuthToken === `Bearer ${authToken}`) {
-    next();
-  } else {
-    res.sendStatus(401);
-  }
-}
 
 function GenerateCompletionId(prefix = "cmpl-") {
   const characters =
@@ -98,45 +75,78 @@ const axiosInstance = axios.create({
   },
 });
 
-// Function to get a new session ID and token from the OpenAI API
-async function getNewSessionId() {
-  let newDeviceId = randomUUID();
-  const response = await axiosInstance.post(
-    `${baseUrl}/backend-anon/sentinel/chat-requirements`,
-    {},
-    {
-      headers: { "oai-device-id": newDeviceId },
-    }
-  );
-  console.log(
-    `System: Successfully refreshed session ID and token. ${
-      !token ? "(Now it's ready to process requests)" : ""
-    }`
-  );
-  sessionStartTime = new Date();
-  oaiDeviceId = newDeviceId;
-  token = response.data.token;
-
-  // console.log("New Token:", token);
-  // console.log("New Device ID:", oaiDeviceId);
-}
-
-// Middleware to enable CORS and handle pre-flight requests
-function enableCORS(req, res, next) {
-  res.header("Access-Control-Allow-Credentials", true);
-  res.header("Access-Control-Allow-Origin", "*");
-  res.header("Access-Control-Allow-Headers", "*");
-  res.header("Access-Control-Allow-Methods", "GET, POST, OPTIONS");
-  if (req.method === "OPTIONS") {
-    return res.status(200).end();
+// 429故障处理
+async function errorHandler(host, redis) {
+  const lock = await redis.set("lock_key", "locked", { ex: 10, nx: true });
+  if (lock !== "OK") {
+    console.log("lock_key is locked");
+    // 获取锁失败,直接返回
+    return false;
   }
-  next();
+
+  try {
+    console.log("get lock_key success");
+    // 获取锁成功,进行错误处理...
+    console.log("waitunitUrl:", `https://${host}/api/waitunit`);
+
+    const waitunitResponse = await fetch(`https://${host}/api/waitunit`);
+    console.log(
+      "waitunitResponse:",
+      waitunitResponse.status,
+      waitunitResponse.statusText
+    );
+    const ref = await redis.hset("session:pro", { refresh: 1 });
+    console.log("refresh:", ref);
+  } finally {
+    // 释放锁
+    await redis.del("lock_key");
+    return true;
+  }
 }
 
 // Middleware to handle chat completions
-async function handleChatCompletion(req, res) {
-  if ((new Date() - sessionStartTime) / 60000 > 1) {
-    await getNewSessionId();
+export default async function handleChatCompletion(req, res) {
+  const host = req.headers.host;
+  // Set CORS headers
+  res.setHeader("Access-Control-Allow-Credentials", true);
+  res.setHeader("Access-Control-Allow-Origin", "*");
+  res.setHeader("Access-Control-Allow-Methods", "GET, POST, OPTIONS");
+  res.setHeader("Access-Control-Allow-Headers", "*");
+
+  if (req.method === "OPTIONS") {
+    res.status(200).end();
+    return;
+  } else if (req.method !== "POST") {
+    res.status(405).end();
+    return;
+  }
+  const authToken = process.env.AUTH_TOKEN;
+  const reqAuthToken = req.headers.authorization;
+  if (authToken && reqAuthToken !== `Bearer ${authToken}`) {
+    res.status(401).end();
+    return;
+  }
+  let redis;
+  // 如果使用了Upstash, 就使用Upstash
+  if (process.env.UPSTASH_REDIS_REST_URL && process.env.UPSTASH_REDIS_REST_TOKEN) {
+    redis = createClient({
+      url: process.env.UPSTASH_REDIS_REST_URL,
+      token: process.env.UPSTASH_REDIS_REST_TOKEN,
+    });
+  } else {
+    redis = createClient({
+      url: process.env.KV_REST_API_URL,
+      token: process.env.KV_REST_API_TOKEN,
+    });
+  }
+
+  const { sessionArr, refresh } = await redis.hgetall("session:pro");
+  const randomNum = Math.floor(Math.random() * sessionArr.length);
+  const { token, oaiDeviceId } = sessionArr[randomNum];
+
+  if (refresh == 1) {
+    res.status(429).end();
+    return;
   }
   console.log(
     "Request:",
@@ -144,6 +154,7 @@ async function handleChatCompletion(req, res) {
     `${req.body?.messages?.length || 0} messages`,
     req.body.stream ? "(stream-enabled)" : "(stream-disabled)"
   );
+
   try {
     const body = {
       action: "next",
@@ -159,7 +170,6 @@ async function handleChatCompletion(req, res) {
       conversation_mode: { kind: "primary_assistant" },
       websocket_request_id: randomUUID(),
     };
-
     const response = await axiosInstance.post(apiUrl, body, {
       responseType: "stream",
       headers: {
@@ -167,7 +177,7 @@ async function handleChatCompletion(req, res) {
         "openai-sentinel-chat-requirements-token": token,
       },
     });
-
+    console.log("oaiResponse:", response.status, response.statusText);
     // Set the response headers based on the request type
     if (req.body.stream) {
       res.setHeader("Content-Type", "text/event-stream");
@@ -267,16 +277,32 @@ async function handleChatCompletion(req, res) {
 
     res.end();
   } catch (error) {
-    flag = false;
-    // console.log('Error:', error.response?.data ?? error.message);
-    if (!res.headersSent) res.setHeader("Content-Type", "application/json");
-    // console.error('Error handling chat completion:', error);
+    let errorMessages;
+    if (error.response?.status == 429) {
+      console.log("oaiResponse: 429 Too Many Request!");
+      errorMessages = "Too Many Request!";
+      // 429 故障处理，暂不需要了
+      // await errorHandler(host, redis);
+    } else if (error.response?.status != undefined) {
+      console.log(
+        "oaiResponse:",
+        error.response?.statusm,
+        error.response?.statusText
+      );
+      errorMessages = error.response?.statusText;
+    } else {
+      console.log("connect error:", error.message);
+      errorMessages = error.message;
+    }
+    if (!res.headersSent)
+      res.writeHead(error.response?.status ?? 502, {
+        "Content-Type": "application/json",
+      });
     res.write(
       JSON.stringify({
         status: false,
         error: {
-          message:
-            "An error happened, please make sure your request is SFW, or use a jailbreak to bypass the filter.",
+          message: errorMessages,
           type: "invalid_request_error",
           origin: error,
         },
@@ -285,41 +311,3 @@ async function handleChatCompletion(req, res) {
     res.end();
   }
 }
-
-// Initialize Express app and use middlewares
-const app = express();
-app.use(bodyParser.json());
-app.use(enableCORS);
-
-async function init() {
-  await getNewSessionId();
-  // Route to handle POST requests for chat completions
-  app.post("/v1/chat/completions", authMiddleware, handleChatCompletion);
-
-  // 404 handler for unmatched routes
-  app.use((req, res) =>
-    res.status(404).send({
-      status: false,
-      error: {
-        message: `The requested endpoint was not found. please make sure to use "http://localhost:3040/v1" as the base URL.`,
-        type: "invalid_request_error",
-      },
-    })
-  );
-
-  // Start the server and the session ID refresh loop
-  app.listen(port, () => {
-    console.log(`💡 Server is running at http://localhost:${port}`);
-    console.log();
-    console.log(`🔗 Base URL: http://localhost:${port}/v1`);
-    console.log(
-      `🔗 ChatCompletion Endpoint: http://localhost:${port}/v1/chat/completions`
-    );
-    console.log();
-    console.log("📝 Original TS Source By: Pawan.Krd");
-    console.log("📝 Modified Into JavaScript By: Adam");
-    console.log();
-  });
-}
-
-init();

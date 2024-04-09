@@ -1,6 +1,21 @@
 {
   "version": 2,
-  "rewrites": [{ "source": "/(.*)", "destination": "/api" }],
+  "rewrites": [
+    {
+      "source": "/v1/chat/completions",
+      "destination": "/api/index"
+    },
+    {
+      "source": "/",
+      "destination": "/api/guide"
+    }
+  ],
+  "crons": [
+    {
+      "path": "/api/cron",
+      "schedule": "*/4 * * * *"
+    }
+  ],
   "functions": {
     "api/**/*": {
       "maxDuration": 300
