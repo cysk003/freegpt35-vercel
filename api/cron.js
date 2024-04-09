@@ -1,7 +1,8 @@
 import axios from "axios";
 import https from "https";
 import { randomUUID } from "crypto";
-import { kv } from "@vercel/kv";
+import { kv, createClient } from "@vercel/kv";
+
 const baseUrl = "https://chat.openai.com";
 
 const axiosInstance = axios.create({
@@ -26,37 +27,72 @@ const axiosInstance = axios.create({
       "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/123.0.0.0 Safari/537.36",
   },
 });
-// Function to attempt the Axios request with retry logic without delay
-async function attemptRequestWithRetry(url, config, retries = 3) {
-  let lastError;
-  for (let attempt = 0; attempt < retries; attempt++) {
-    try {
-      return await axiosInstance.post(url, {}, config);
-    } catch (error) {
-      console.log(`Attempt ${attempt + 1} failed. Retrying...`);
-      lastError = error;
-    }
-  }
-  throw lastError; // Throws the last error encountered if all attempts fail
-}
 
 export default async function handler(request, response) {
-  const newDeviceId = randomUUID();
+  let redis;
+  // 如果使用了Upstash, 就
+  if (process.env.UPSTASH_REDIS_REST_URL && process.env.UPSTASH_REDIS_REST_TOKEN) {
+    redis = createClient({
+      url: process.env.UPSTASH_REDIS_REST_URL,
+      token: process.env.UPSTASH_REDIS_REST_TOKEN,
+    });
+  } else {
+    redis = createClient({
+      url: process.env.KV_REST_API_URL,
+      token: process.env.KV_REST_API_TOKEN,
+    });
+  }
+
+  const sessionsArr = [];
+  const promises = [];
+  let errorCount = 0;
+  const SessionNum = 16;
+
+  for (let i = 0; i < SessionNum; i++) {
+    const newDeviceId = randomUUID();
+    const promise = new Promise(async (resolve, reject) => {
+      setTimeout(async () => {
+        try {
+          const myResponse = await axiosInstance.post(
+            `${baseUrl}/backend-anon/sentinel/chat-requirements`,
+            {},
+            {
+              headers: { "oai-device-id": newDeviceId },
+            }
+          );
+          console.log(`系统: 成功获取会话 ID 和令牌。`);
+
+          const token = myResponse.data.token;
+          resolve({ oaiDeviceId: newDeviceId, token });
+        } catch (error) {
+          console.error("发起请求时出错:", error.message);
+          errorCount++;
+          resolve(null);
+        }
+      }, i * 300);
+    });
+    promises.push(promise);
+  }
+
   try {
-    const myResponse = await attemptRequestWithRetry(
-      `${baseUrl}/backend-anon/sentinel/chat-requirements`,
-      {
-        headers: { "oai-device-id": newDeviceId },
+    const results = await Promise.all(promises);
+    results.forEach((result) => {
+      if (result !== null) {
+        sessionsArr.push(result);
       }
-    );
-    console.log(`System: Successfully refreshed session ID and token.`);
+    });
 
-    const token = myResponse.data.token;
-    await kv.hset("session:pro", {oaiDeviceId : newDeviceId, token, refresh: 0});
+    if (errorCount === SessionNum) {
+      return response.status(500).json({ error: "获取会话 ID 和令牌失败" });
+    }
 
-    return response.json(myResponse.data);
+    await redis.hset("session:pro", {
+      refresh: 0,
+      sessionArr: sessionsArr,
+    });
+
+    return response.json({ message: "成功获取并存储会话信息" });
   } catch (error) {
-    console.error("Error making request:", error);
-    return response.status(500).json({ error: "Failed to refresh session ID and token" });
+    return response.status(500).json({ error: "获取会话 ID 和令牌失败" });
   }
 }
