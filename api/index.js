@@ -106,6 +106,20 @@ async function errorHandler(host, redis) {
 
 // Middleware to handle chat completions
 export default async function handleChatCompletion(req, res) {
+
+  // 简单加一段UA检测，防止被爬虫
+  const userAgent = req.headers['user-agent'].toLowerCase();
+  // 更新阻止列表，包括更多的用户代理关键词
+  const blockedUAs = ['python', 'go', 'wget', 'java', 'perl', 'ruby', 'node.js', 'php'];
+  // 检查UA是否包含任一被阻止的关键词
+  const isBlockedUA = blockedUAs.some(ua => userAgent.includes(ua));
+  if (isBlockedUA) {
+    // 如果UA被阻止，则返回403 Forbidden状态码
+    res.status(403).send('Access Denied');
+    return;
+  }
+  console.log("userAgent:",userAgent);
+
   const host = req.headers.host;
   // Set CORS headers
   res.setHeader("Access-Control-Allow-Credentials", true);
