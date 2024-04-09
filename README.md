@@ -1,152 +1,71 @@
-> [!WARNING]
-> ## Vercel部署此路有严重限制，玩玩就好，真用还是得docker。
-> ## 还是看看远处的[aurora](https://github.com/aurora-develop/aurora)吧家人们
-- 限制原因:
-Vercel的流式响应并不是一开始写流，客户端就能立刻收到响应流，而是先写到一个缓冲区，当流关闭才一股脑的流式响应回来(不是实时流)
-- 因此导致:
-超过10s之后才要关闭的流，通通接收不到。(因为Vercel免费版持续时间最大值10秒)
-- 解决办法:
-氪金!!! Vercel Pro 超时上限为300s，Pro用户部署完成后，到Vercel的`Setting`->`Git`->`Production Branch`填写为`vercel-pro`然后`Save`保存后部署该分支即可获得300s超时上限。
-![guide](./img/guide.png)
-#### 不过，玩玩沉浸式翻译，把`每次请求最大文本长度`调小一点不超时的话，还是不错的。 (自定义域名的情况下)
-#### Vercel的并发大概有==50-60QPS==。即使是中小段落翻译任务，并发依然稳在==30QPS==
-#### 并发测试水平: 
-##### 短对话: 
-```
-{"role": "user", "content": content: "Say this is a test!"}
-```
-![test](./img/test.png)
-##### 日常翻译:
-```
-[{"role": "system", "content": "你是一个专业,地道的翻译引擎，你只返回译文，不含任何解释"},
-{"role": "user", "content": "将下面 YAML 格式的文本中的 text 字段翻译为 Simplified Chinese Language，并将翻译结果写在 text 字段中\n\nExample request:\n  - id: 1\n    text: Source\nExample result:\n  - id: 1\n    text: Translation\n\n开始翻译:\n\n- id: 1\n  text: The Philippines' official vessels infringed on China's rights, made provocations in the disguise of fishery protection, and organized media to hype up misinformation, which undermined stability in the South China Sea, he noted.\n- id: 2\n  text: Any tactic infringing on China's rights is futile, he warned.\n- id: 3\n  text: The CCG will carry out regular rights protection and law enforcement operations in waters under China's jurisdiction, and resolutely safeguard the country's territorial sovereignty and maritime rights and interests, he said."}]
-```
-![test2](./img/test2.png)
+# 我Vercel又复活啦!!!!!! 已支持==流式响应==!!!!!! (把Express丢了)
+# 并发这次也确实提高了, 之前确实测得不准，这次真够用了
+### ChatGPT Next Web 测试 
+当然这么长的回复10s肯定发不完
+![Stream](./img/Stream.gif)
+#### 依然存在的问题
+- 超过10s之后会断流。(因为Vercel免费版持续时间最大值10秒)
+#### 解决办法:
+氪金!!! Vercel Pro 超时上限为300s，[跳转Pro部署介绍](#3-vercel-pro-计划的尊贵用户移除请求最大持续时间10s上限)
+
 ---------------------
-## Vercel一键部署
+## Vercel部署按钮 
+**==不推荐==，无法同步更新，并且新版需要数据库了，==点了也还需要配置数据库步骤==**
 
-<a href="https://vercel.com/import/project?template=https://github.com/cliouo/FreeGPT35-Vercel" target="_blank" rel="noopener noreferrer"><img loading="lazy" src="https://vercel.com/button" alt="Deploy to Vercel" ></a>
+[![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https%3A%2F%2Fgithub.com%2Fcliouo%2FFreeGPT35-Vercel&skippable-integrations=1)
 
-**绑定自定义域名解决Vercel域名被阻断问题**
 
-### Variables
-| Key         | Default Value                          | Note                                      |
-|-------------|----------------------------------------|-------------------------------------------|
-| `AUTH_TOKEN`|          any_string_you_like           | This is your API key for accessing FreeGPT35. |
 
 --------------------
 
-## 以下为原项目文档:
-
-[![Docker Pulls][1]](https://hub.docker.com/r/missuo/freegpt35)
-
-[1]: https://img.shields.io/docker/pulls/missuo/freegpt35?logo=docker
-
-Utilize the unlimited free **GPT-3.5-Turbo** API service provided by the login-free ChatGPT Web.
-
-
-> [!IMPORTANT]  
-> **If you are unable to use this project normally, it is most likely due to issues with your IP. Your IP has triggered Cloudflare's shield, or has already been banned. Please try to change your IP or switch servers on your own. 如果您无法正常使用此项目，很可能是由于您的 IP 存在问题。您的 IP 已触发了 Cloudflare 的盾，或已被 ban 掉。请尝试自行更改您的 IP 或切换服务器。**
-
-## Please READ the following content carefully!
-- Please do not use the IP provided by proxy providers, otherwise you probably won't be able to use it. 请不要使用机场的 IP，不然你大概率无法使用。
-- Do not make frequent requests, such as using **immersive translate**. 不要频繁请求，例如使用沉浸式翻译。
-- Recommended to use US home broadband IP, you are very likely to succeed. 推荐使用美国家宽IP，你很大可能可以成功。
-- Don't share and abuse your API. 不要共享和滥用你的 API。
-
 ## Deploy
+#### 以下均建议绑定自定义域名解决Vercel域名被阻断问题
+### 1. 结合 [Vercel](https://vercel.com/) 的`KV`数据库部署 (kv数据库每天只有3k次、每月30k次访问，仅够个人低频率使用)
+1. fork 本仓库，fork时，取消勾选 `Copy the main branch only`
+2. 进入Vercel，导入您fork的仓库
+3. 点击`Deploy`，等待部署完成
+4. 进入`Storage`选项卡，创建一个`KV`数据库，`Database Name`随便起，`Primary Region`区域推荐选`San Francisco`，点击`Create`
+5. 务必确认`kv`数据库的`Projects`选项卡连接了你的项目
+6. (可选) 在`Settings`的`Domains`下绑定你自己的域名。
+7. 转到顶部`Deployments`选项卡，`Redeploy`重新部署你的项目
+8. 完成! 鼓掌
 
-### Node
+--------------------
 
-```bash
-npm install
-node app.js
-```
-### Docker
+### 2. 结合 [Upstash](https://upstash.com/) 的`Redis`数据库部署 (每天10k次访问) 推荐!
+[官方文档](https://upstash.com/docs/redis/overall/getstarted)
+1. 跳转到`Upstash`创建并登录您的账户，创建一个`Redis`数据库
+2. `Region` 推荐选 `California, USA`，`Eviction`勾选，然后创建
+![Create Database](./img/2db.png)
+1. 注意`UPSTASH_REST_API_URL`和`UPSTASH_REST_API_TOKEN`，等下要复制这两对数据名和数据的值，这两对数据等下要在`Vercel`的`Environment Variables`里填入
+![Upstash API](./img/3upstashapi.png)
+1. fork 本仓库，fork时，取消勾选 `Copy the main branch only`
+2. 在vercel中导入您fork的仓库
+3. 在 `Environment Variables` 输入框中填入 第3步 的两对数据
+![Environment Variables](./img/6environment.png)
+1. 点击`Deploy`
+2. (可选) 在`Settings`的`Domains`下绑定你自己的域名。
+3. 转到顶部`Deployments`选项卡，`Redeploy`重新部署你的项目
+4. 完成! 鼓掌
 
-```bash
-docker run -p 3040:3040 ghcr.io/missuo/freegpt35
-```
+--------------------
 
-```bash
-docker run -p 3040:3040 missuo/freegpt35
-```
+### 3. `Vercel Pro` 计划的尊贵用户，移除请求最大持续时间10s上限
+1. 前几步部署和上述两种计划相同，按需选择
+2. 只需在最后`Redeploy`重新部署前，到`Settings`下的`Git`页面，在`Production Branch`填入`vercel-pro`点击`Save`
+![guide](./img/guide.png)
+3. 然后转到顶部`Deployments`选项卡，注意不要在下面已经部署的记录里选!!!，点击如图右上角的三个点 `Create Deployment`选择`vercel-pro`然后`Create Deployment`
+![deploy](./img/deploy.png)
+4. 完成! 鼓掌
 
-### Docker Compose
-
-#### Only FreeGPT35 Service
-
-```bash
-mkdir freegpt35 && cd freegpt35
-wget -O compose.yaml https://raw.githubusercontent.com/missuo/FreeGPT35/main/compose.yaml
-docker compose up -d
-```
-
-#### FreeGPT35 Service with [ChatGPT-Next-Web](https://github.com/ChatGPTNextWeb/ChatGPT-Next-Web):
-
-```bash
-mkdir freegpt35 && cd freegpt35
-wget -O compose.yaml https://raw.githubusercontent.com/missuo/FreeGPT35/main/compose_with_next_chat.yaml
-docker compose up -d
-```
-
-After deployment, you can directly access `http://[IP]:3040/v1/chat/completions` to use the API. Or use `http://[IP]:3000` to directly use **ChatGPT-Next-Web**.
-
-### Nginx Reverse Proxy
-
-```nginx
-location ^~ / {
-        proxy_pass http://127.0.0.1:3040; 
-        proxy_set_header Host $host; 
-        proxy_set_header X-Real-IP $remote_addr; 
-        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for; 
-        proxy_set_header REMOTE-HOST $remote_addr; 
-        proxy_set_header Upgrade $http_upgrade; 
-        proxy_set_header Connection "upgrade"; 
-        proxy_http_version 1.1; 
-        add_header Cache-Control no-cache; 
-        proxy_cache off;
-        proxy_buffering off;
-        chunked_transfer_encoding on;
-        tcp_nopush on;
-        tcp_nodelay on;
-        keepalive_timeout 300;
-    }
-```
-
-### Nginx Reverse Proxy with Load Balancer
-
-```nginx
-upstream freegpt35 {
-        server 1.1.1.1:3040;
-        server 2.2.2.2:3040;
-}
-
-location ^~ / {
-        proxy_pass http://freegpt35; 
-        proxy_set_header Host $host; 
-        proxy_set_header X-Real-IP $remote_addr; 
-        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for; 
-        proxy_set_header REMOTE-HOST $remote_addr; 
-        proxy_set_header Upgrade $http_upgrade; 
-        proxy_set_header Connection "upgrade"; 
-        proxy_http_version 1.1; 
-        add_header Cache-Control no-cache; 
-        proxy_cache off;
-        proxy_buffering off;
-        chunked_transfer_encoding on;
-        tcp_nopush on;
-        tcp_nodelay on;
-        keepalive_timeout 300;
-    }
-```
+--------------------
 
 ## Request Example
 
 **You don't have to pass Authorization, of course, you can also pass any string randomly.**
 
 ```bash
-curl http://127.0.0.1:3040/v1/chat/completions \
+curl https://[Your Vercel Domain]/v1/chat/completions \
   -H "Content-Type: application/json" \
   -H "Authorization: Bearer any_string_you_like" \
   -d '{
@@ -160,7 +79,15 @@ curl http://127.0.0.1:3040/v1/chat/completions \
     "stream": true
     }'
 ```
-
+## 高级设置
+### Environment Variables (如果你不知道是干嘛的，请不要随意设置)
+| Key                     | Value                         | Note                                          |
+|-------------------------|-------------------------------|-----------------------------------------------|
+| `AUTH_TOKEN`            | You_set_the_apikey_yourself.  | This is your API key for accessing FreeGPT35. |
+| `UPSTASH_REST_API_URL`  | Your_Upstash_URL              | This is Your_Upstash_URL                      |
+| `UPSTASH_REST_API_TOKEN`| Your_Upstash_Token            | This is Your_Upstash_Token                    |
+### 并发调整
+默认定时4分钟更新16个token，token决定并发，一般绝对够用了，如需上调要考虑能在10s请求时间上限内刷新完token (Pro用户可自行规划)
 ## Compatibility
 
 You can use it in any app, such as OpenCat, Next-Chat, Lobe-Chat, Bob, etc. Feel free to fill in an **API Key** with any string, for example, `gptyyds`.
@@ -169,8 +96,11 @@ You can use it in any app, such as OpenCat, Next-Chat, Lobe-Chat, Bob, etc. Feel
 ![Bob](./img/bob.png)
 
 ## Credits
-- Forked From: [https://github.com/skzhengkai/free-chatgpt-api](https://github.com/skzhengkai/free-chatgpt-api)
+- Forked From: [https://github.com/missuo/FreeGPT35](https://github.com/missuo/FreeGPT35)
+- Higher Upstream: [https://github.com/skzhengkai/free-chatgpt-api](https://github.com/skzhengkai/free-chatgpt-api)
 - Original Author: [https://github.com/PawanOsman/ChatGPT](https://github.com/PawanOsman/ChatGPT)
+## Similar Project
 
+- [aurora](https://github.com/aurora-develop/aurora): Golang development, support for multiple deployment methods
 ## License
-MIT License
+AGPL 3.0 License

@@ -1,19 +1,16 @@
 {
-  "name": "FreeGPT35",
+  "name": "@freegpt35/vercel-kv",
   "version": "1.0.0",
   "description": "",
-  "main": "index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1",
-    "start": "node api/index.js"
+    "test": "echo \"Error: no test specified\" && exit 1"
   },
   "keywords": [],
   "author": "",
   "license": "MIT",
   "dependencies": {
-    "axios": "^1.6.8",
-    "express": "^4.19.2",
-    "request": "^2.88.2",
-    "dotenv": "^16.0.3"
-  }
+    "@vercel/kv": "^1.0.1",
+    "axios": "^1.6.8"
+  },
+  "type": "module"
 }
