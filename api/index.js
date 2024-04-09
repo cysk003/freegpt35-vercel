@@ -1,7 +1,12 @@
+export const config = {
+  supportsResponseStreaming: true,
+};
+ 
 import axios from "axios";
 import https from "https";
 import { randomUUID } from "crypto";
 import { kv } from "@vercel/kv";
+
 
 // Constants for the server and API configuration
 const baseUrl = "https://chat.openai.com";
@@ -71,9 +76,34 @@ const axiosInstance = axios.create({
   },
 });
 
+// 429故障处理
+async function errorHandler(host) {
+  const lock = await kv.set('lock_key', 'locked', { ex: 10, nx: true });
+  if (lock !== 'OK') {
+    console.log("lock_key is locked");
+    // 获取锁失败,直接返回
+    return false;
+  }
+
+  try {
+    console.log("get lock_key success");
+    // 获取锁成功,进行错误处理...
+    console.log("cronUrl:", `https://${host}/api/cron`);
+    //cron(req)
+     const cronResponse = await fetch(`https://${host}/api/cron`);
+    console.log("cronResponse:", cronResponse.status, cronResponse.statusText);
+    const ref =  await kv.hset("session:pro", {refresh: 1});
+    console.log("refresh:", ref);
+  } finally {
+    // 释放锁
+    await kv.del('lock_key');
+    return true;
+  }
+}
 
 // Middleware to handle chat completions
 export default async function handleChatCompletion(req, res) {
+  const host = req.headers.host;
   // Set CORS headers
   res.setHeader("Access-Control-Allow-Credentials", true);
   res.setHeader("Access-Control-Allow-Origin", "*");
@@ -83,23 +113,31 @@ export default async function handleChatCompletion(req, res) {
   if (req.method === "OPTIONS") {
     res.status(200).end();
     return;
+  }else if (req.method !== "POST") {
+    res.status(405).end();
+    return;
   }
-
   const authToken = process.env.AUTH_TOKEN;
   const reqAuthToken = req.headers.authorization;
   if (authToken && reqAuthToken !== `Bearer ${authToken}`) {
-    res.sendStatus(401);
+    res.status(401).end();
+    return;
   }
 
-  const session = await kv.hgetall("session:pro");
-  const { oaiDeviceId, token } = session;
 
+  const session = await kv.hgetall("session:pro");
+  const { oaiDeviceId, token, refresh } = session;
+  if(refresh == 1){
+    res.status(429).end();
+    return;
+  };
   console.log(
     "Request:",
     `${req.method} ${req.originalUrl}`,
     `${req.body?.messages?.length || 0} messages`,
     req.body.stream ? "(stream-enabled)" : "(stream-disabled)"
   );
+
   try {
     const body = {
       action: "next",
@@ -222,15 +260,30 @@ export default async function handleChatCompletion(req, res) {
 
     res.end();
   } catch (error) {
+    let errorMessages;
+    if(error.response?.status == 429){
+      console.log("oaiResponse: 429 Too Many Request!");
+      errorMessages = "Too Many Request!";
+      // 429 故障处理
+      await errorHandler(host);
+    }else if(error.response?.status != undefined){
+      console.log("oaiResponse:", error.response?.statusm, error.response?.statusText);
+      errorMessages = error.response?.statusText;
+    }else {
+      console.log("connect error:", error.message);
+      errorMessages = error.message;
+    }
+
     // console.log('Error:', error.response?.data ?? error.message);
-    if (!res.headersSent) res.setHeader("Content-Type", "application/json");
+    // if (!res.headersSent) res.setHeader("Content-Type", "application/json");
+    if (!res.headersSent) res.writeHead(error.response?.status ?? 502, { "Content-Type": "application/json" });
     // console.error('Error handling chat completion:', error);
     res.write(
       JSON.stringify({
         status: false,
         error: {
-          message:
-            "An error happened, please make sure your request is SFW, or use a jailbreak to bypass the filter.",
+          message: errorMessages,
+            // "An error happened, please make sure your request is SFW, or use a jailbreak to bypass the filter.",
           type: "invalid_request_error",
           origin: error,
         },
