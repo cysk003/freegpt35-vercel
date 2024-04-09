@@ -1,3 +1,6 @@
+# 我又复活啦!!!!
+代码全面
+
 > [!WARNING]
 > ## Vercel部署此路有严重限制，玩玩就好，真用还是得docker。
 > ## 还是看看远处的[aurora](https://github.com/aurora-develop/aurora)吧家人们
@@ -173,4 +176,4 @@ You can use it in any app, such as OpenCat, Next-Chat, Lobe-Chat, Bob, etc. Feel
 - Original Author: [https://github.com/PawanOsman/ChatGPT](https://github.com/PawanOsman/ChatGPT)
 
 ## License
-MIT License
+AGPL 3.0 License

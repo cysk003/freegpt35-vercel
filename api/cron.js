@@ -1,7 +1,7 @@
 import axios from "axios";
 import https from "https";
 import { randomUUID } from "crypto";
-import { kv, createClient } from "@vercel/kv";
+import { createClient } from "@vercel/kv";
 
 const baseUrl = "https://chat.openai.com";
 

@@ -5,7 +5,7 @@ export const config = {
 import axios from "axios";
 import https from "https";
 import { randomUUID } from "crypto";
-import { kv, createClient } from "@vercel/kv";
+import { createClient } from "@vercel/kv";
 
 // Constants for the server and API configuration
 const baseUrl = "https://chat.openai.com";
@@ -140,9 +140,7 @@ export default async function handleChatCompletion(req, res) {
     });
   }
 
-  const session = await redis.hgetall("session:pro");
-  const { sessionArr, refresh } = session;
-  // console.log("sessionArr:",sessionArr);
+  const { sessionArr, refresh } = await redis.hgetall("session:pro");
   const randomNum = Math.floor(Math.random() * sessionArr.length);
   const { token, oaiDeviceId } = sessionArr[randomNum];
 
@@ -283,7 +281,7 @@ export default async function handleChatCompletion(req, res) {
     if (error.response?.status == 429) {
       console.log("oaiResponse: 429 Too Many Request!");
       errorMessages = "Too Many Request!";
-      // 429 故障处理
+      // 429 故障处理，暂不需要了
       // await errorHandler(host, redis);
     } else if (error.response?.status != undefined) {
       console.log(
@@ -296,20 +294,15 @@ export default async function handleChatCompletion(req, res) {
       console.log("connect error:", error.message);
       errorMessages = error.message;
     }
-
-    // console.log('Error:', error.response?.data ?? error.message);
-    // if (!res.headersSent) res.setHeader("Content-Type", "application/json");
     if (!res.headersSent)
       res.writeHead(error.response?.status ?? 502, {
         "Content-Type": "application/json",
       });
-    // console.error('Error handling chat completion:', error);
     res.write(
       JSON.stringify({
         status: false,
         error: {
           message: errorMessages,
-          // "An error happened, please make sure your request is SFW, or use a jailbreak to bypass the filter.",
           type: "invalid_request_error",
           origin: error,
         },

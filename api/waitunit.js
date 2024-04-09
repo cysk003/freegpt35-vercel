@@ -1,3 +1,4 @@
+// waitunit.js 用于充分利用10秒请求时间
 async function getSession(reqUrl) {
   const res = await fetch(`${reqUrl.origin}/api/cron`);;
   return res.json();
