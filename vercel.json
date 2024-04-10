@@ -9,11 +9,5 @@
       "source": "/",
       "destination": "/api/guide"
     }
-  ],
-  "crons": [
-    {
-      "path": "/api/cron",
-      "schedule": "*/4 * * * *"
-    }
   ]
 }

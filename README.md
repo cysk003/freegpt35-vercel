@@ -5,12 +5,13 @@
 ![Stream](./img/Stream.gif)
 #### 依然存在的问题
 - 超过10s之后会断流。(因为Vercel免费版持续时间最大值10秒)
+- 向OpenAI请求的token的刷新依靠的是定时任务，免费用户一天只给用一次...
 #### 解决办法:
-氪金!!! Vercel Pro 超时上限为300s，[跳转Pro部署介绍](#3-vercel-pro-计划的尊贵用户移除请求最大持续时间10s上限)
+Vercel Pro 计划 超时上限为300s，并且自带cron计划任务[跳转Pro部署介绍](#3-vercel-pro-计划的尊贵用户移除请求最大持续时间10s上限)
 
 ---------------------
 ## Vercel部署按钮 
-**==不推荐==，无法同步更新，并且新版需要数据库了，==点了也还需要配置数据库步骤==**
+**不推荐，无法同步更新，并且新版需要数据库了，点了也还需要配置数据库步骤**
 
 [![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https%3A%2F%2Fgithub.com%2Fcliouo%2FFreeGPT35-Vercel&skippable-integrations=1)
 
@@ -28,7 +29,10 @@
 5. 务必确认`kv`数据库的`Projects`选项卡连接了你的项目
 6. (可选) 在`Settings`的`Domains`下绑定你自己的域名。
 7. 转到顶部`Deployments`选项卡，`Redeploy`重新部署你的项目
-8. 完成! 鼓掌
+
+8. (免费计划用户)到[cron-job](https://console.cron-job.org/)创建一个定时访问刷新token的任务，填上`https://你的域名/api/cron`，选个每两分钟，`Create`就好了，有其他类似Uptime Kuma也一样。
+![Cron](./img/cron.png)
+9. 完成! 鼓掌
 
 --------------------
 
@@ -46,12 +50,13 @@
 1. 点击`Deploy`
 2. (可选) 在`Settings`的`Domains`下绑定你自己的域名。
 3. 转到顶部`Deployments`选项卡，`Redeploy`重新部署你的项目
-4. 完成! 鼓掌
+4. (同上 8. 免费计划用户需要设置cron-job.org定时任务)
+5. 完成! 鼓掌
 
 --------------------
 
-### 3. `Vercel Pro` 计划的尊贵用户，移除请求最大持续时间10s上限
-1. 前几步部署和上述两种计划相同，按需选择
+### 3. `Vercel Pro` 计划的尊贵用户，移除请求最大持续时间10s上限，自带cron定时任务
+1. 前几步部署和上述两种计划相同，按需选择，并且不需要设置cron计划任务了
 2. 只需在最后`Redeploy`重新部署前，到`Settings`下的`Git`页面，在`Production Branch`填入`vercel-pro`点击`Save`
 ![guide](./img/guide.png)
 3. 然后转到顶部`Deployments`选项卡，注意不要在下面已经部署的记录里选!!!，点击如图右上角的三个点 `Create Deployment`选择`vercel-pro`然后`Create Deployment`
