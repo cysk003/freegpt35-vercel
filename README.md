@@ -4,13 +4,15 @@
 当然这么长的回复10s肯定发不完
 ![Stream](./img/Stream.gif)
 #### 依然存在的问题
-- 超过10s之后会断流。(因为Vercel免费版持续时间最大值10秒)
+- 超过10s之后会断流。(因为Vercel免费版持续时间最大值10秒，因此使用沉浸式翻译记得降低`最大文本长度`到600左右，并发30)。
+- 向OpenAI请求的token的刷新依靠的是定时任务，免费用户一天只给用一次...
 #### 解决办法:
-氪金!!! Vercel Pro 超时上限为300s，[跳转Pro部署介绍](#3-vercel-pro-计划的尊贵用户移除请求最大持续时间10s上限)
+Vercel Pro 计划 超时上限为300s，并且自带cron计划任务[跳转Pro部署介绍](#3-vercel-pro-计划的尊贵用户移除请求最大持续时间10s上限)
+否则定时任务可通过[cron-job](https://console.cron-job.org/)或`Uptime Kuma`等定期(每2-4分钟)调用`https://你的域名/api/cron`
 
 ---------------------
 ## Vercel部署按钮 
-**==不推荐==，无法同步更新，并且新版需要数据库了，==点了也还需要配置数据库步骤==**
+**不推荐，无法同步更新，并且新版需要数据库了，点了也还需要配置数据库步骤**
 
 [![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https%3A%2F%2Fgithub.com%2Fcliouo%2FFreeGPT35-Vercel&skippable-integrations=1)
 
@@ -28,7 +30,10 @@
 5. 务必确认`kv`数据库的`Projects`选项卡连接了你的项目
 6. (可选) 在`Settings`的`Domains`下绑定你自己的域名。
 7. 转到顶部`Deployments`选项卡，`Redeploy`重新部署你的项目
-8. 完成! 鼓掌
+
+8. (免费计划用户)到[cron-job](https://console.cron-job.org/)创建一个定时访问刷新token的任务，填上`https://你的域名/api/cron`，选个每两分钟，`Create`就好了，有其他类似Uptime Kuma也一样。
+![Cron](./img/cron.png)
+9. 完成! 鼓掌，第一次部署完建议手动访问一下`https://你的域名/api/cron`刷新token
 
 --------------------
 
@@ -37,26 +42,27 @@
 1. 跳转到`Upstash`创建并登录您的账户，创建一个`Redis`数据库
 2. `Region` 推荐选 `California, USA`，`Eviction`勾选，然后创建
 ![Create Database](./img/2db.png)
-1. 注意`UPSTASH_REST_API_URL`和`UPSTASH_REST_API_TOKEN`，等下要复制这两对数据名和数据的值，这两对数据等下要在`Vercel`的`Environment Variables`里填入
+3. 注意`UPSTASH_REDIS_REST_URL`和`UPSTASH_REDIS_REST_TOKEN`，等下要复制这两对数据名和数据的值，这两对数据等下要在`Vercel`的`Environment Variables`里填入
 ![Upstash API](./img/3upstashapi.png)
-1. fork 本仓库，fork时，取消勾选 `Copy the main branch only`
-2. 在vercel中导入您fork的仓库
-3. 在 `Environment Variables` 输入框中填入 第3步 的两对数据
+4. fork 本仓库，fork时，取消勾选 `Copy the main branch only`
+5. 在vercel中导入您fork的仓库
+6. 在 `Environment Variables` 输入框中填入 第3步 的两对数据
 ![Environment Variables](./img/6environment.png)
-1. 点击`Deploy`
-2. (可选) 在`Settings`的`Domains`下绑定你自己的域名。
-3. 转到顶部`Deployments`选项卡，`Redeploy`重新部署你的项目
-4. 完成! 鼓掌
+7. 点击`Deploy`
+8. (可选) 在`Settings`的`Domains`下绑定你自己的域名。
+9. 转到顶部`Deployments`选项卡，`Redeploy`重新部署你的项目
+10. (同上 8. 免费计划用户需要设置cron-job.org定时任务)
+11. 完成! 鼓掌，第一次部署完建议手动访问一下`https://你的域名/api/cron`刷新token
 
 --------------------
 
-### 3. `Vercel Pro` 计划的尊贵用户，移除请求最大持续时间10s上限
-1. 前几步部署和上述两种计划相同，按需选择
+### 3. `Vercel Pro` 计划的尊贵用户，移除请求最大持续时间10s上限，自带cron定时任务
+1. 前几步部署和上述两种计划相同，按需选择，并且不需要设置cron计划任务了
 2. 只需在最后`Redeploy`重新部署前，到`Settings`下的`Git`页面，在`Production Branch`填入`vercel-pro`点击`Save`
 ![guide](./img/guide.png)
 3. 然后转到顶部`Deployments`选项卡，注意不要在下面已经部署的记录里选!!!，点击如图右上角的三个点 `Create Deployment`选择`vercel-pro`然后`Create Deployment`
 ![deploy](./img/deploy.png)
-4. 完成! 鼓掌
+4. 完成! 鼓掌，第一次部署完建议手动访问一下`https://你的域名/api/cron`刷新token
 
 --------------------
 
@@ -84,8 +90,8 @@ curl https://[Your Vercel Domain]/v1/chat/completions \
 | Key                     | Value                         | Note                                          |
 |-------------------------|-------------------------------|-----------------------------------------------|
 | `AUTH_TOKEN`            | You_set_the_apikey_yourself.  | This is your API key for accessing FreeGPT35. |
-| `UPSTASH_REST_API_URL`  | Your_Upstash_URL              | This is Your_Upstash_URL                      |
-| `UPSTASH_REST_API_TOKEN`| Your_Upstash_Token            | This is Your_Upstash_Token                    |
+| `UPSTASH_REDIS_REST_URL`  | Your_Upstash_URL              | This is Your_Upstash_URL                      |
+| `UPSTASH_REDIS_REST_TOKEN`| Your_Upstash_Token            | This is Your_Upstash_Token                    |
 ### 并发调整
 默认定时4分钟更新16个token，token决定并发，一般绝对够用了，如需上调要考虑能在10s请求时间上限内刷新完token (Pro用户可自行规划)
 ## Compatibility

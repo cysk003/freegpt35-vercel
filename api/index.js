@@ -4,6 +4,7 @@ export const config = {
 
 import axios from "axios";
 import https from "https";
+import { encode } from "gpt-3-encoder";
 import { randomUUID } from "crypto";
 import { createClient } from "@vercel/kv";
 
@@ -184,6 +185,14 @@ export default async function handleChatCompletion(req, res) {
       conversation_mode: { kind: "primary_assistant" },
       websocket_request_id: randomUUID(),
     };
+
+    let promptTokens = 0;
+    let completionTokens = 0;
+
+    for (let message of req.body.messages) {
+      promptTokens += encode(message.content).length;
+    }
+
     const response = await axiosInstance.post(apiUrl, body, {
       responseType: "stream",
       headers: {
@@ -204,6 +213,7 @@ export default async function handleChatCompletion(req, res) {
     let fullContent = "";
     let requestId = GenerateCompletionId("chatcmpl-");
     let created = Date.now();
+    let finish_reason = null;
 
     for await (const message of StreamCompletion(response.data)) {
       if (message.match(/^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}.\d{6}$/)) {
@@ -211,7 +221,8 @@ export default async function handleChatCompletion(req, res) {
       }
       const parsed = JSON.parse(message);
 
-      let content = parsed?.message?.content?.parts[0] || "";
+      let content = parsed?.message?.content?.parts[0] ?? "";
+      let status = parsed?.message?.status ?? "";
 
       for (let message of req.body.messages) {
         if (message.content === content) {
@@ -219,8 +230,31 @@ export default async function handleChatCompletion(req, res) {
           break;
         }
       }
+      switch (status) {
+        case "in_progress":
+          finish_reason = null;
+          break;
+        case "finished_successfully":
+          let finish_reason_data =
+            parsed?.message?.metadata?.finish_details?.type ?? null;
+          switch (finish_reason_data) {
+            case "max_tokens":
+              finish_reason = "length";
+              break;
+            case "stop":
+            default:
+              finish_reason = "stop";
+          }
+          break;
+        default:
+          finish_reason = null;
+      }
 
       if (content === "") continue;
+
+      let completionChunk = content.replace(fullContent, "");
+
+      completionTokens += encode(completionChunk).length;
 
       if (req.body.stream) {
         let response = {
@@ -231,10 +265,10 @@ export default async function handleChatCompletion(req, res) {
           choices: [
             {
               delta: {
-                content: content.replace(fullContent, ""),
+                content: completionChunk,
               },
               index: 0,
-              finish_reason: null,
+              finish_reason: finish_reason,
             },
           ],
         };
@@ -258,7 +292,7 @@ export default async function handleChatCompletion(req, res) {
                 content: "",
               },
               index: 0,
-              finish_reason: "stop",
+              finish_reason: finish_reason,
             },
           ],
         })}\n\n`
@@ -272,7 +306,7 @@ export default async function handleChatCompletion(req, res) {
           object: "chat.completion",
           choices: [
             {
-              finish_reason: "stop",
+              finish_reason: finish_reason,
               index: 0,
               message: {
                 content: fullContent,
@@ -281,9 +315,9 @@ export default async function handleChatCompletion(req, res) {
             },
           ],
           usage: {
-            prompt_tokens: 0,
-            completion_tokens: 0,
-            total_tokens: 0,
+            prompt_tokens: promptTokens,
+            completion_tokens: completionTokens,
+            total_tokens: promptTokens + completionTokens,
           },
         })
       );
