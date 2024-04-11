@@ -1,5 +1,6 @@
 {
   "version": 2,
+  "regions": ["sfo1"],
   "rewrites": [
     {
       "source": "/v1/chat/completions",
