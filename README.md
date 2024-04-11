@@ -1,6 +1,8 @@
 # 我Vercel又复活啦!!!!!! 已支持==流式响应==!!!!!! (把Express丢了)
 # 并发这次也确实提高了, 之前确实测得不准，这次真够用了
-### ChatGPT Next Web 测试 
+#### 测试接口: [https://testgpt.iqaq.me/](https://testgpt.iqaq.me/)
+### ChatGPT Next Web 测试: 
+#### 在线体验: [https://chat.iqaq.me/](https://chat.iqaq.me/)
 当然这么长的回复10s肯定发不完
 ![Stream](./img/Stream.gif)
 #### 依然存在的问题
@@ -12,7 +14,7 @@ Vercel Pro 计划 超时上限为300s，并且自带cron计划任务[跳转Pro�
 
 ---------------------
 ## Vercel部署按钮 
-**不推荐，无法同步更新，并且新版需要数据库了，点了也还需要配置数据库步骤**
+**不推荐**，无法同步更新，并且新版需要数据库了，**点了也不能直接用**，依然需要配置数据库步骤
 
 [![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https%3A%2F%2Fgithub.com%2Fcliouo%2FFreeGPT35-Vercel&skippable-integrations=1)
 
@@ -22,7 +24,7 @@ Vercel Pro 计划 超时上限为300s，并且自带cron计划任务[跳转Pro�
 
 ## Deploy
 #### 以下均建议绑定自定义域名解决Vercel域名被阻断问题
-### 1. 结合 [Vercel](https://vercel.com/) 的`KV`数据库部署 (kv数据库每天只有3k次、每月30k次访问，仅够个人低频率使用)
+### 方式一: 结合 [Vercel](https://vercel.com/) 的`KV`数据库部署 (kv数据库每天只有3k次、每月30k次访问，仅够个人低频率使用)
 1. fork 本仓库，fork时，取消勾选 `Copy the main branch only`
 2. 进入Vercel，导入您fork的仓库
 3. 点击`Deploy`，等待部署完成
@@ -37,7 +39,7 @@ Vercel Pro 计划 超时上限为300s，并且自带cron计划任务[跳转Pro�
 
 --------------------
 
-### 2. 结合 [Upstash](https://upstash.com/) 的`Redis`数据库部署 (每天10k次访问) 推荐!
+### 方式二: 结合 [Upstash](https://upstash.com/) 的`Redis`数据库部署 (每天10k次访问) 推荐!
 [官方文档](https://upstash.com/docs/redis/overall/getstarted)
 1. 跳转到`Upstash`创建并登录您的账户，创建一个`Redis`数据库
 2. `Region` 推荐选 `California, USA`，`Eviction`勾选，然后创建
@@ -56,7 +58,7 @@ Vercel Pro 计划 超时上限为300s，并且自带cron计划任务[跳转Pro�
 
 --------------------
 
-### 3. `Vercel Pro` 计划的尊贵用户，移除请求最大持续时间10s上限，自带cron定时任务
+### 方式三: `Vercel Pro` 计划的尊贵用户，移除请求最大持续时间10s上限，自带cron定时任务
 1. 前几步部署和上述两种计划相同，按需选择，并且不需要设置cron计划任务了
 2. 只需在最后`Redeploy`重新部署前，到`Settings`下的`Git`页面，在`Production Branch`填入`vercel-pro`点击`Save`
 ![guide](./img/guide.png)
@@ -87,11 +89,12 @@ curl https://[Your Vercel Domain]/v1/chat/completions \
 ```
 ## 高级设置
 ### Environment Variables (如果你不知道是干嘛的，请不要随意设置)
-| Key                     | Value                         | Note                                          |
-|-------------------------|-------------------------------|-----------------------------------------------|
-| `AUTH_TOKEN`            | You_set_the_apikey_yourself.  | This is your API key for accessing FreeGPT35. |
-| `UPSTASH_REDIS_REST_URL`  | Your_Upstash_URL              | This is Your_Upstash_URL                      |
-| `UPSTASH_REDIS_REST_TOKEN`| Your_Upstash_Token            | This is Your_Upstash_Token                    |
+
+| Key                       | Value                         | 解释                                          | 要求  |
+|---------------------------|-------------------------------|-----------------------------------------------|-------|
+| `AUTH_TOKEN`              | You_set_the_apikey_yourself.  | 你为自己接口设置的apikey。                      | 可选  |
+| `UPSTASH_REDIS_REST_URL`  | Your_Upstash_URL              | 你的Upstash Redis数据库的URL                   | 可选   |
+| `UPSTASH_REDIS_REST_TOKEN`| Your_Upstash_Token            | 你的Upstash Redis数据库的Token                 | 可选   |
 ### 并发调整
 默认定时4分钟更新16个token，token决定并发，一般绝对够用了，如需上调要考虑能在10s请求时间上限内刷新完token (Pro用户可自行规划)
 ## Compatibility
