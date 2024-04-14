@@ -1,4 +1,5 @@
-# 我Vercel又复活啦!!!!!! 已支持==流式响应==!!!!!! (把Express丢了)
+简体中文 / [English](./README_en.md)
+# 我Vercel又复活啦!!!!!! 已支持流式响应!!!!!! 
 # 并发这次也确实提高了, 之前确实测得不准，这次真够用了
 #### 测试接口: [https://testgpt.iqaq.me/](https://testgpt.iqaq.me/)
 ### ChatGPT Next Web 测试: 
@@ -14,7 +15,7 @@ Vercel Pro 计划 超时上限为300s，并且自带cron计划任务[跳转Pro�
 
 ---------------------
 ## Vercel部署按钮 
-**不推荐，无法同步更新，**~~并且新版需要数据库了，点了也还需要配置数据库步骤~~ **该按钮目前包含了`Vercel KV`数据库**，免费计划仅需配一下[cron-job](https://console.cron-job.org/)，看下面Deploy 方式一: 第八条
+**不推荐，无法同步更新**, ~~并且新版需要数据库了，点了也还需要配置数据库步骤~~ **该按钮目前已经包含了`Vercel KV`数据库**，免费计划仅需配一下[cron-job](https://console.cron-job.org/)，看下面Deploy 方式一: 第八条
 
 [![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https%3A%2F%2Fgithub.com%2Fcliouo%2FFreeGPT35-Vercel&skippable-integrations=1&stores=[{"type":"kv"}])
 
