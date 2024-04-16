@@ -50,7 +50,7 @@ Of course, I can't send such a long reply in 10s!
 4. fork this repository, and uncheck `Copy the main branch only` when you fork.
 5. Import the forked repository in vercel.
 6. In the `Environment Variables` input box, fill in the two pairs of data from step 3.
-![Environment Variables](./img/6environment.png)
+![Environment Variables](./img/environment.png)
 7. Click `Deploy`.
 8. (Optional) Bind your own domain name under `Domains` in `Settings`. 9.
 9. Go to the `Deployments` tab at the top and `Redeploy` to redeploy your project.
@@ -64,7 +64,7 @@ Of course, I can't send such a long reply in 10s!
 2. just go to the `Git` page under `Settings` and fill in `vercel-pro` in `Production Branch` and click `Save` before the final `Redeploy` redeployment.
 ![guide](./img/guide.png)
 3. Then go to the `Deployments` tab at the top, and be careful not to select any of the already deployed records below!!!! Then click on the three dots in the top right corner of the image `Create Deployment` and select `vercel-pro` and then `Create Deployment`!
-![deploy](./img/deploy.png)
+![deploy](./img/6deploy.png)
 4. Done! Applause, after the first deployment it is recommended to manually visit `https://[Your_domain]/api/cron` to refresh the token
 
 --------------------

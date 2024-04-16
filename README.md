@@ -15,7 +15,7 @@ Vercel Pro 计划 超时上限为300s，并且自带cron计划任务[跳转Pro�
 
 ---------------------
 ## Vercel部署按钮 
-**不推荐，无法同步更新**, ~~并且新版需要数据库了，点了也还需要配置数据库步骤~~ **该按钮目前已经包含了`Vercel KV`数据库**，免费计划仅需配一下[cron-job](https://console.cron-job.org/)，看下面Deploy 方式一: 第八条
+**不推荐，无法同步更新**, ~~并且新版需要数据库了，点了也还需要配置数据库步骤~~ **该按钮目前已经包含了`Vercel KV`数据库**，免费计划仅需配一下[cron-job](https://console.cron-job.org/)，看下面部署 方式一: 第八条
 
 [![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https%3A%2F%2Fgithub.com%2Fcliouo%2FFreeGPT35-Vercel&skippable-integrations=1&stores=[{"type":"kv"}])
 
@@ -23,7 +23,7 @@ Vercel Pro 计划 超时上限为300s，并且自带cron计划任务[跳转Pro�
 
 --------------------
 
-## Deploy
+## 部署项目
 #### 以下均建议绑定自定义域名解决Vercel域名被阻断问题
 ### 方式一: 结合 [Vercel](https://vercel.com/) 的`KV`数据库部署 (kv数据库每天只有3k次、每月30k次访问，仅够个人低频率使用)
 1. fork 本仓库，fork时，取消勾选 `Copy the main branch only`
@@ -50,7 +50,7 @@ Vercel Pro 计划 超时上限为300s，并且自带cron计划任务[跳转Pro�
 4. fork 本仓库，fork时，取消勾选 `Copy the main branch only`
 5. 在vercel中导入您fork的仓库
 6. 在 `Environment Variables` 输入框中填入 第3步 的两对数据
-![Environment Variables](./img/6environment.png)
+![Environment Variables](./img/environment.png)
 7. 点击`Deploy`
 8. (可选) 在`Settings`的`Domains`下绑定你自己的域名。
 9. 转到顶部`Deployments`选项卡，`Redeploy`重新部署你的项目
@@ -64,14 +64,14 @@ Vercel Pro 计划 超时上限为300s，并且自带cron计划任务[跳转Pro�
 2. 只需在最后`Redeploy`重新部署前，到`Settings`下的`Git`页面，在`Production Branch`填入`vercel-pro`点击`Save`
 ![guide](./img/guide.png)
 3. 然后转到顶部`Deployments`选项卡，注意不要在下面已经部署的记录里选!!!，点击如图右上角的三个点 `Create Deployment`选择`vercel-pro`然后`Create Deployment`
-![deploy](./img/deploy.png)
+![deploy](./img/6deploy.png)
 4. 完成! 鼓掌，第一次部署完建议手动访问一下`https://你的域名/api/cron`刷新token
 
 --------------------
 
-## Request Example
+## 请求示例
 
-**You don't have to pass Authorization, of course, you can also pass any string randomly.**
+**如果你没有设置`AUTH_TOKEN`，你可以不传递`Authorization`，也可以随意传递任何字符串。**
 
 ```bash
 curl https://[Your Vercel Domain]/v1/chat/completions \
@@ -89,7 +89,7 @@ curl https://[Your Vercel Domain]/v1/chat/completions \
     }'
 ```
 ## 高级设置
-### Environment Variables (如果你不知道是干嘛的，请不要随意设置)
+### 环境变量 (如果你不知道是干嘛的，请不要随意设置)
 
 | Key                       | Value                         | 解释                                          | 要求  |
 |---------------------------|-------------------------------|-----------------------------------------------|-------|
@@ -98,9 +98,9 @@ curl https://[Your Vercel Domain]/v1/chat/completions \
 | `UPSTASH_REDIS_REST_TOKEN`| Your_Upstash_Token            | 你的Upstash Redis数据库的Token                 | 可选   |
 ### 并发调整
 默认定时4分钟更新16个token，token决定并发，一般绝对够用了，如需上调要考虑能在10s请求时间上限内刷新完token (Pro用户可自行规划)
-## Compatibility
+## 兼容性
 
-You can use it in any app, such as OpenCat, Next-Chat, Lobe-Chat, Bob, etc. Feel free to fill in an **API Key** with any string, for example, `gptyyds`.
+您可以在任何客户端中使用它，如 `OpenCat`、`Next-Chat`、`Lobe-Chat`、`Bob` 等。在**API Key**中随意填写任何字符串或者你设置了`AUTH_TOKEN`，就填写它。
 
 ### Bob
 ![Bob](./img/bob.png)
